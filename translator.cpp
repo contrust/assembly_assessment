@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
 	uint32_t state_count;
 
 	input_file >> state_count;
-	//write_in_little_endian(output_file, state_count);
+	write_in_little_endian(output_file, state_count);
 
 	int state_max_length = 10;
 	std::map<std::string, uint32_t> states_order;
@@ -47,20 +47,20 @@ int main(int argc, char* argv[]){
 	for (uint32_t i = 0; i != state_count; ++i){
 		std::string state;
 		input_file >> state;
-		//output_file << std::setw(10) << std::setfill('\0') << state;
+		output_file << std::setw(10) << std::setfill('\0') << state;
 		states_order[state] = i;
 	}
 
 	std::string initial_state, terminal_state;
 	input_file >> initial_state >> terminal_state;
 
-	//write_in_little_endian(output_file, states_order[initial_state]);
-	//write_in_little_endian(output_file, states_order[terminal_state]);
+	write_in_little_endian(output_file, states_order[initial_state]);
+	write_in_little_endian(output_file, states_order[terminal_state]);
 
 	uint32_t transitions_count;
 
 	input_file >> transitions_count;
-	//write_in_little_endian(output_file, transitions_count);
+	write_in_little_endian(output_file, transitions_count);
 
 	std::map<std::pair<uint32_t, unsigned char>, std::tuple<uint32_t, unsigned char, unsigned char>> transitions;
 
@@ -77,6 +77,12 @@ int main(int argc, char* argv[]){
 		write_in_little_endian(output_file, std::get<0>(transition.second));
 		output_file << std::get<1>(transition.second) << std::get<2>(transition.second);
 	}
+
+	std::string tape;
+
+	input_file >> tape;
+	write_in_little_endian(output_file, tape.size());
+	output_file << tape;
 
 	return 0;
 }
