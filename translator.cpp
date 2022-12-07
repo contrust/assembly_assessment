@@ -57,25 +57,28 @@ int main(int argc, char* argv[]){
 	write_in_little_endian(output_file, states_order[initial_state]);
 	write_in_little_endian(output_file, states_order[terminal_state]);
 
-	uint32_t transitions_count;
+	unsigned int transitions_count;
 
 	input_file >> transitions_count;
 	write_in_little_endian(output_file, transitions_count);
 
-	std::map<std::pair<uint32_t, unsigned char>, std::tuple<uint32_t, unsigned char, unsigned char>> transitions;
+	unsigned int transitions_table_size = state_count * 128 * 4;
+	char transitions[transitions_table_size] = { };
 
 	for (int i = 0; i != transitions_count; ++i){
 		std::string from_state, to_state;
 		unsigned char from_ch, to_ch, move;
 		input_file >> from_state >> from_ch >> to_state >> to_state >> to_ch >> move;
-		transitions[std::make_pair(states_order[from_state], from_ch)] = std::make_tuple(states_order[to_state], to_ch, move);
+		if (move == 'L') move = 1;
+		if (move == 'S') move = 2;
+		if (move == 'R') move = 3;
+		int transition_start_pos = states_order[from_state] * 512 + from_ch * 4;
+		transitions[transition_start_pos] = states_order[to_state];
+	        transitions[transition_start_pos + 1] = to_ch;
+		transitions[transition_start_pos + 2] = move;
 	}
-
-	for (auto transition: transitions){
-		write_in_little_endian(output_file, transition.first.first);
-		output_file << transition.first.second;
-		write_in_little_endian(output_file, std::get<0>(transition.second));
-		output_file << std::get<1>(transition.second) << std::get<2>(transition.second);
+	for (int i = 0; i != transitions_table_size; ++i){
+		output_file << transitions[i];
 	}
 
 	std::string tape;
