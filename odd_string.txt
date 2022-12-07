@@ -1,0 +1,13 @@
+4
+check_odd even odd STOP
+check_odd STOP
+8
+check_odd 0 -> even _ R
+check_odd 1 -> odd _ R
+even 1 -> odd _ R
+even 0 -> even _ R
+even _ -> STOP 0 S
+odd 1 -> even _ R
+odd 0 -> odd _ R
+odd _ -> STOP 1 S
+1
