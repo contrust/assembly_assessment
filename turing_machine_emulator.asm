@@ -73,7 +73,7 @@ terminal_state:
         xor %rdx, %rdx
         mov buffer, %edx
         mov %rdx, %r15     # Store the terminal state in r15.
-transitions:
+transitions_table:
 	xor %rax, %rax
         mov %r8, %rdi
         mov $buffer, %rsi
@@ -99,6 +99,26 @@ transitions:
         mov %r8, %rdi
         mov %r12, %rsi
         syscall         # Write the transitions table in the heap.
+tape_before:
+        mov $12, %rax
+        xor %rdi, %rdi
+        syscall         # Store the address of the tape's end in rax.
+
+	mov %rax, %r13	
+	mov %rax, %rbx
+	mov %rax, %rdi
+        mov $100000, %rdx
+	push %r13
+
+        mov $12, %rax
+        add %rdx, %rdi
+        syscall         # Allocate rdx number of bytes in the heap for the end of the tape.
+write_lambda_loop2:
+        cmp %rbx, %rdi
+        je tape_start
+        movb $95, (%rbx)
+        inc %rbx
+        jmp write_lambda_loop2
 tape_start:
 	xor %rax, %rax
         mov %r8, %rdi
@@ -139,7 +159,6 @@ tape_end:
         mov $12, %rax
         add %rdx, %rdi
         syscall         # Allocate rdx number of bytes in the heap for the end of the tape.
-	pop %r11
 write_lambda_loop:
 	cmp %rbx, %rdi
 	je set_initial_values
@@ -147,13 +166,15 @@ write_lambda_loop:
 	inc %rbx
 	jmp write_lambda_loop
 set_initial_values:
+	pop %r13
+	pop %r11
 	mov %r14, %r9
 	mov $0, %r11
 step:
 	cmp %r15, %r9
-	je exit
+	je stop_transition
 	cmp $100000, %r11
-	je exit
+	je made_transition
 	mov %r13, %rax
 	mov current_tape_index, %rbx
 	xor %rcx, %rcx
@@ -166,7 +187,7 @@ step:
 	xor %rcx, %rcx
 	movb 2(%rbx, %rdx), %cl
 	cmpb $0, %cl
-	je exit
+	je fail_transition
 	
 	push %rcx
 	
@@ -189,39 +210,244 @@ step:
 	je step_right
 	jmp exit
 step_left:
-	cmp $0, %rdx
-	jne .1
-	mov $99999, %rdx
-	jmp .2
-.1:
 	dec %rdx
-.2:
 	mov $current_tape_index, %rax
         mov %rdx, (%rax)
-	mov $leftmost_tape_index, %rax
-        cmp (%rax), %rdx
-	jg step
-	mov %rdx, (%rax)
 	jmp step
 step_right:
         inc %rdx
         mov $current_tape_index, %rax
         mov %rdx, (%rax)
-        mov $rightmost_tape_index, %rax
-        cmp (%rax), %rdx
-        jl step
-        mov %rdx, (%rax)
-        jmp step
+	jmp step
+fail_transition:
+	push %r9
+	push %r11
+
+	mov $fail_after, %rsi
+	mov $11, %rdx
+	mov $1, %rdi
+	mov $1, %rax
+	syscall
+
+	pop %r11
+	jmp print_rest_of_the_first_line
+stop_transition:
+        push %r9
+        push %r11
+
+        mov $stop_after, %rsi
+        mov $11, %rdx
+        mov $1, %rdi
+        mov $1, %rax
+        syscall
+
+        pop %r11
+        jmp print_rest_of_the_first_line
+made_transition:
+        push %r9
+        push %r11
+
+        mov $made, %rsi
+        mov $5, %rdx
+        mov $1, %rdi
+        mov $1, %rax
+        syscall
+
+        pop %r11
+        jmp print_rest_of_the_first_line
+print_rest_of_the_first_line:
+	mov %r11, %rax
+	push %r11
+	call convert_to_decimal_start
+	pop %r11
+        mov $transitions, %rsi
+        mov $13, %rdx
+        mov $1, %rdi
+        mov $1, %rax
+        syscall
+        jmp print_last_two_lines	
+print_last_two_lines:
+	
+	push %r11
+	call print_tape
+
+	mov $newline, %rsi
+	mov $1, %rdx
+	mov $1, %rdi
+	mov $1, %rax
+	syscall
+	pop %r11
+	pop %r9
+	call print_current_state
+
+        mov $space, %rsi
+        mov $1, %rdx
+        mov $1, %rdi
+        mov $1, %rax
+        syscall
+
+	call print_current_tape_index
+
+	mov $newline, %rsi
+        mov $1, %rdx
+        mov $1, %rdi
+        mov $1, %rax
+        syscall
+
+	jmp exit
+
+print_current_tape_index:
+	mov leftmost_tape_index, %rbx
+	mov rightmost_tape_index, %rcx
+	cmp %rbx, %rcx
+	je mov_zero_to_rax
+	mov current_tape_index, %rax
+	sub %rbx, %rax
+	cmp $0, %rax
+	jge print_current_tape_index_end
+
+	push %rax
+
+        mov $minus, %rsi
+        mov $1, %rdx
+        mov $1, %rdi
+        mov $1, %rax
+        syscall
+	pop %rax	
+
+	neg %rax
+	jmp print_current_tape_index_end
+mov_zero_to_rax:
+	xor %rax, %rax	
+print_current_tape_index_end:
+	push %r11
+	call convert_to_decimal_start
+	pop %r11
+	ret 
+print_current_state:
+	mov $10, %rax
+	mul %r9
+	add %r10, %rax
+	mov %rax, %rbx
+	mov %rax, %rdx
+	add $10, %rdx
+print_current_state_loop:
+	cmp %rdx, %rbx
+        je print_current_state_loop_end
+	cmpb $0, (%rbx)
+	je print_current_state_loop_inc
+	push %rdx
+	mov %rbx, %rsi
+	mov $1, %rdx
+	mov $1, %rdi
+	mov $1, %rax
+	syscall
+	pop %rdx
+print_current_state_loop_inc:
+	inc %rbx
+	jmp print_current_state_loop
+print_current_state_loop_end:
+	ret
+print_tape:
+	push %r11
+	mov %r13, %rax
+	mov $0, %rbx
+	mov $199999, %rcx
+find_first_not_empty_element_from_left:
+	cmp %rcx, %rbx
+	je update_leftmost_tape_index
+	cmpb $95, (%rax, %rbx)
+	jne update_leftmost_tape_index
+	inc %rbx
+	jmp find_first_not_empty_element_from_left
+update_leftmost_tape_index:
+	mov $leftmost_tape_index, %rdx
+	mov %rbx, (%rdx)
+find_first_not_empty_element_from_right:
+	cmp %rcx, %rbx
+	je check_for_empty
+	mov (%rax, %rcx), %rsi
+	cmpb $95, (%rax, %rcx)
+	jne inc_rcx
+	dec %rcx
+	jmp find_first_not_empty_element_from_right
+check_for_empty:
+        cmpb $95, (%rax, %rcx)
+	je _print_tape
+inc_rcx:
+	inc %rcx
+_print_tape:
+	mov $rightmost_tape_index, %rdx
+        mov %rcx, (%rdx)
+
+	mov %r13, %rsi
+	add %rbx, %rsi
+	mov %rcx, %rdx
+	sub %rbx, %rdx
+	mov $1, %rdi
+	mov $1, %rax
+	syscall
+	pop %r11
+	ret
+convert_to_decimal_start:
+	mov $decimal_res, %rdi
+	add $decimal_res_len, %rdi
+	dec %rdi
+convert_to_decimal_loop:
+	mov $0, %rdx
+	mov $10, %rsi
+	div %rsi
+	add $48, %dl
+	movb %dl, (%rdi)
+	mov $0, %rdx
+        cmp $decimal_res, %rdi
+        je find_first_nonzero_symbol_start
+	dec %rdi
+	jmp convert_to_decimal_loop
+find_first_nonzero_symbol_start:
+	mov $decimal_res, %rsi
+	mov %rsi, %rdx
+	add $decimal_res_len, %rdx
+	dec %rdx
+find_first_nonzero_symbol_loop:
+	cmpb $48, (%rsi)
+	jne write
+	cmp %rsi, %rdx
+	je write
+	inc %rsi
+	jmp find_first_nonzero_symbol_loop
+write:
+	sub %rsi, %rdx
+	add $2, %rdx
+        mov $1, %rax
+        mov $1, %rdi
+        syscall
+	ret
 exit:
-	mov %r11, %rdi
         mov $60, %rax
+	xor %rdi, %rdi
         syscall
 .data
 current_tape_index:
-.quad 0
-leftmost_tape_index:
 .quad 100000
-rightmost_tape_index:
-.quad 0
+fail_after:
+.ascii "FAIL after "
+made:
+.ascii "MADE "
+stop_after:
+.ascii "STOP after "
+transitions:
+.ascii " transitions\n"
+space:
+.ascii " "
+newline:
+.ascii "\n"
+minus:
+.ascii "-"
+decimal_res: 
+.ascii "00000000000000000000"
+decimal_res_len=.-decimal_res
 .bss
 .lcomm buffer, 4
+.lcomm leftmost_tape_index, 8
+.lcomm rightmost_tape_index, 8
