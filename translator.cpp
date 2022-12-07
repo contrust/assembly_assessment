@@ -47,6 +47,9 @@ int main(int argc, char* argv[]){
 	for (uint32_t i = 0; i != state_count; ++i){
 		std::string state;
 		input_file >> state;
+		if (state.size() > 10){
+			std::cout << state << " length is more than 10 bytes.\n";
+		}
 		output_file << std::setw(10) << std::setfill('\0') << state;
 		states_order[state] = i;
 	}
@@ -72,6 +75,12 @@ int main(int argc, char* argv[]){
 		if (move == 'L') move = 1;
 		if (move == 'S') move = 2;
 		if (move == 'R') move = 3;
+		if (states_order.find(from_state) == states_order.end()){
+			std::cout << from_state << " hasn't been declared.\n";
+		}
+		if (states_order.find(to_state) == states_order.end()){
+			std::cout << to_state << " hasn't been declared.\n";
+                }
 		int transition_start_pos = states_order[from_state] * 512 + from_ch * 4;
 		transitions[transition_start_pos] = states_order[to_state];
 	        transitions[transition_start_pos + 1] = to_ch;
