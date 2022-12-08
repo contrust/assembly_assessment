@@ -22,7 +22,7 @@ _start:
 	syscall 	# Store the opened file descriptor of the input file in rax.
 
         mov %rax, %r8
-states_names:
+
         xor %rax, %rax
         mov %r8, %rdi
         mov $buffer, %rsi
@@ -53,7 +53,7 @@ states_names:
 	mov %r8, %rdi
 	mov %r10, %rsi
 	syscall		# Write the states' names in the heap.
-initial_state:
+
 	xor %rax, %rax
         mov %r8, %rdi
         mov $buffer, %rsi
@@ -63,7 +63,7 @@ initial_state:
         xor %rdx, %rdx
         mov buffer, %edx
 	mov %rdx, %r14     # Store the initial state in r14.
-terminal_state:
+
         xor %rax, %rax
         mov %r8, %rdi
         mov $buffer, %rsi
@@ -73,7 +73,7 @@ terminal_state:
         xor %rdx, %rdx
         mov buffer, %edx
         mov %rdx, %r15     # Store the terminal state in r15.
-transitions_table:
+
 	xor %rax, %rax
         mov %r8, %rdi
         mov $buffer, %rsi
@@ -99,7 +99,7 @@ transitions_table:
         mov %r8, %rdi
         mov %r12, %rsi
         syscall         # Write the transitions table in the heap.
-tape_before:
+
         mov $12, %rax
         xor %rdi, %rdi
         syscall         # Store the address of the tape's end in rax.
@@ -113,6 +113,7 @@ tape_before:
         mov $12, %rax
         add %rdx, %rdi
         syscall         # Allocate rdx number of bytes in the heap for the end of the tape.
+
 write_lambda_loop2:
         cmp %rbx, %rdi
         je tape_start
@@ -144,7 +145,7 @@ tape_start:
         mov %r8, %rdi
         mov %r13, %rsi
         syscall         # Write the tape in the heap.
-tape_end:
+
 	mov $12, %rax
         xor %rdi, %rdi
         syscall         # Store the address of the tape's end in rax.
