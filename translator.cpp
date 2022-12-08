@@ -49,6 +49,7 @@ int main(int argc, char* argv[]){
 		input_file >> state;
 		if (state.size() > 10){
 			std::cout << state << " length is more than 10 bytes.\n";
+			return 1;
 		}
 		output_file << std::setw(10) << std::setfill('\0') << state;
 		states_order[state] = i;
@@ -77,9 +78,11 @@ int main(int argc, char* argv[]){
 		if (move == 'R') move = 3;
 		if (states_order.find(from_state) == states_order.end()){
 			std::cout << from_state << " hasn't been declared.\n";
+			return 1;
 		}
 		if (states_order.find(to_state) == states_order.end()){
 			std::cout << to_state << " hasn't been declared.\n";
+			return 1;
                 }
 		int transition_start_pos = states_order[from_state] * 512 + from_ch * 4;
 		transitions[transition_start_pos] = states_order[to_state];
