@@ -10,4 +10,4 @@ even _ -> STOP 0 S
 odd 1 -> even _ R
 odd 0 -> odd _ R
 odd _ -> STOP 1 S
-1
+1111100011010010101
